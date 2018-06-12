@@ -1,0 +1,170 @@
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://cdn.jsdelivr.net/npm/mana-font@latest/css/mana.css" rel="stylesheet" type="text/css" />
+<link href="https://cdn.jsdelivr.net/npm/purecss@1.0.0/build/pure-min.css" rel="stylesheet" type="text/css" />
+<style>
+* {
+  font-size: 10px;
+}
+h2 {
+  margin: 6px 0;
+  font-weight: 300;
+  color: #888;
+  text-align: center;
+}
+#content {
+  width: 100%;
+}
+.support {
+  color: darkgray;
+  padding: 5px;
+  margin: 5px 0;
+  text-align: center;
+}
+a:link {
+  color:#2c698c;
+}
+a:visited {
+  color:#2c698c;
+}
+a:hover {
+  color:#142e3e;
+}
+.row {
+  padding: 6px;
+  /* margin-top: 3px;
+  margin-bottom: 3px; */
+  border: solid 1px lightgray;
+}
+.row-top {
+  white-space: nowrap;
+  margin-bottom: 3px;
+}
+.row-bottom {
+  margin-bottom: 3px;
+}
+.common {}
+.uncommon {
+  background-color: #fffaf0;
+}
+.rare {
+  background-color: #faf0e6;
+}
+ .mythic {
+  background-color: #eedfcc;
+}
+</style>
+</head>
+<body>
+  <h2>MTG Tricks</h2>
+  <div id="content"></div>
+  <div class="support"><a href="https://scryfall.com/docs/account-faqs">Support Scryfall</a></div>
+  <script type="text/javascript" src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+  <script type="text/javascript">
+function replaceAll(str, find, replace) {
+  return str.split(find).join(replace);
+}
+var rarityCodes = {
+  'common': 'C',
+  'uncommon': 'U',
+  'rare': 'R',
+  'mythic': 'MR',
+};
+var rarityMap = {
+  'common': 0,
+  'uncommon': 1,
+  'rare': 2,
+  'mythic': 3,
+};
+function rarityCode(c) {
+  return rarityCodes[c.rarity];
+}
+function compareRarity(c1, c2) {
+  return (rarityMap[c1.rarity] - rarityMap[c2.rarity]);
+}
+var colorMap = {
+  'W': 0,
+  'U': 1,
+  'B': 2,
+  'R': 3,
+  'G': 4
+}
+function colorLookup(c) {
+  if (c.colors.length == 0) {
+    return 0
+  } else if (c.colors.length > 1) {
+    return 5;
+  }
+  var color = c.colors[0];
+  return colorMap[color]
+}
+function compareColors(c1, c2) {
+  return (colorLookup(c1) - colorLookup(c2));
+}
+function replaceMana(cost) {
+  cost = replaceAll(cost, "{W}", '<i class="ms ms-cost ms-shadow ms-w"></i>');
+  cost = replaceAll(cost, "{U}", '<i class="ms ms-cost ms-shadow ms-u"></i>');
+  cost = replaceAll(cost, "{B}", '<i class="ms ms-cost ms-shadow ms-b"></i>');
+  cost = replaceAll(cost, "{R}", '<i class="ms ms-cost ms-shadow ms-r"></i>');
+  cost = replaceAll(cost, "{G}", '<i class="ms ms-cost ms-shadow ms-g"></i>');
+  cost = replaceAll(cost, "{X}", '<i class="ms ms-cost ms-shadow ms-x"></i>');
+  for (var i = 0; i < 20; i++) {
+    cost = replaceAll(cost, "{" + i + "}", '<i class="ms ms-cost ms-shadow ms-' + i + '"></i>');
+  }
+  return cost;
+}
+function typeCode(c) {
+  var typeLine = c.type_line.split("—")[0].trim();
+  typeLine = typeLine.replace("Legendary", "&#9819;")
+  return typeLine;
+}
+function fetchCards(query) {
+  fetch('https://api.scryfall.com/cards/search?q=' + encodeURIComponent(query))
+    .then(function(response) {
+      return response.json();
+    })
+    .then(function(response) {
+      var cards = response.data;
+      cards.sort(function(c1, c2) {
+        var color = compareColors(c1, c2);
+        if (color != 0) {
+          return color;
+        }
+        var rarity = compareRarity(c1, c2);
+        if (rarity != 0) {
+          return rarity;
+        }
+        var cost = c1.cmc - c2.cmc;
+        return cost;
+      });
+      cards.forEach(function(e) {
+        var row = "<div class='row " + e.rarity + "'>";
+        row += "<div class='row-top'>";
+        row += "<span>" + replaceMana(e.mana_cost) + "</span> ";
+        row += "<span><a href='" + e.scryfall_uri + "'>" + e.name + "</a></span> ";
+        row += "<span>" + rarityCode(e) + "</span> ";
+        row += "<span>" + typeCode(e) + "</span>";
+        row += "</div>";
+        row += "<div class='row-bottom' nowrap>" + replaceMana(e.oracle_text) + " [<a href='" + e.related_uris.gatherer + "'>gatherer</a>]</div>";
+        row += "</div>";
+        $("#content").append($(row));
+      });
+      console.log(response);
+    }).catch(function() {
+      $("#content").append($(row));
+      console.log("There was an error in the query. You can use ?b=<block code> or ?q=<scryfall query>");
+    });;
+}
+
+var urlParams = new URLSearchParams(window.location.search);
+if (urlParams.has('b')) {
+  fetchCards('b:' + urlParams.get('b') + ' (t:instant or o:flash)');
+} else if (urlParams.has('q')) {
+  fetchCards(urlParams.get('q'));
+} else {
+  fetchCards('b:dom (t:instant or o:flash)');
+}
+  </script>
+</body>
+</html>

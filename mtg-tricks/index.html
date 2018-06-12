@@ -140,7 +140,7 @@ function fetchCards(query) {
       });
       var element = "";
       cards.forEach(function(e) {
-        var card = e;
+        console.log(e);
         element += "<div class='row " + e.rarity + "'>";
         element += "<div class='row-top'>";
         element += "<span>" + replaceMana(e.mana_cost) + "</span> ";
@@ -161,7 +161,6 @@ function fetchCards(query) {
         element += "</div>";
       });
       document.getElementById("content").innerHTML = element;
-      console.log(response);
     }).catch(function(e) {
       console.error(e);
       document.getElementById("content").innerHTML = "<span>There was an error in the query. You can use ?b=[block code] or ?q=[scryfall query]</span>";

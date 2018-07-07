@@ -17,6 +17,10 @@ h2 {
 #content {
   width: 100%;
 }
+#q {
+  width: 80%;
+  text-align: center;
+}
 .support {
   color: darkgray;
   padding: 5px;
@@ -34,8 +38,6 @@ a:hover {
 }
 .row {
   padding: 6px;
-  /* margin-top: 3px;
-  margin-bottom: 3px; */
   border: solid 1px lightgray;
 }
 .row-top {
@@ -79,6 +81,7 @@ a:hover {
   <h2>MTG Tricks</h2>
   <div id="content"></div>
   <div class="support">
+    <div><form><input id="q" name="q" type="text"></input></form></div>
     <div><div id="result-count"></div></div>
     <div><a href="https://scryfall.com/docs/account-faqs">Support Scryfall</a></div>
   </div>
@@ -152,6 +155,7 @@ function typeCode(c) {
   return typeLine;
 }
 function fetchCards(query) {
+  document.getElementById("q").setAttribute("value", query);
   fetch('https://api.scryfall.com/cards/search?q=' + encodeURIComponent(query))
     .then(function(response) {
       return response.json();

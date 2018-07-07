@@ -52,24 +52,45 @@ a:hover {
 .rare {
   background-color: #faf0e6;
 }
- .mythic {
+.mythic {
   background-color: #eedfcc;
+}
+.bg-w {
+  background-color: #f7f6ee;
+}
+.bg-u {
+  background-color: #d4e8f2;
+}
+.bg-b {
+  background-color: #d4cbcc;
+}
+.bg-r {
+  background-color: #f3d0c8;
+}
+.bg-g {
+  background-color: #dee8e3;
+}
+.bg-z {
+  background-color: #fcf4df;
 }
 </style>
 </head>
 <body>
   <h2>MTG Tricks</h2>
   <div id="content"></div>
-  <div class="support"><a href="https://scryfall.com/docs/account-faqs">Support Scryfall</a></div>
+  <div class="support">
+    <div><div id="result-count"></div></div>
+    <div><a href="https://scryfall.com/docs/account-faqs">Support Scryfall</a></div>
+  </div>
   <script type="text/javascript">
 function replaceAll(str, find, replace) {
   return str.split(find).join(replace);
 }
 var rarityCodes = {
-  'common': 'C',
-  'uncommon': 'U',
-  'rare': 'R',
-  'mythic': 'MR',
+  'common': 'Common',
+  'uncommon': 'Uncommon',
+  'rare': 'Rare',
+  'mythic': 'Mythic',
 };
 var rarityMap = {
   'common': 0,
@@ -98,6 +119,17 @@ function colorLookup(c) {
   }
   var color = c.colors[0];
   return colorMap[color]
+}
+function colorLookupLetter(c) {
+  if (c.colors.length == 0) {
+    return 'A'
+  } else if (c.colors.length > 1) {
+    return 'Z';
+  }
+  if ("WUBRG".indexOf(c.colors[0]) == -1) {
+    return '';
+  }
+  return c.colors[0];
 }
 function compareColors(c1, c2) {
   return (colorLookup(c1) - colorLookup(c2));
@@ -161,6 +193,7 @@ function fetchCards(query) {
         element += "</div>";
       });
       document.getElementById("content").innerHTML = element;
+      document.getElementById("result-count").innerHTML = cards.length + " results.";
     }).catch(function(e) {
       console.error(e);
       document.getElementById("content").innerHTML = "<span>There was an error in the query. You can use ?b=[block code] or ?q=[scryfall query]</span>";
@@ -169,11 +202,11 @@ function fetchCards(query) {
 
 var urlParams = new URLSearchParams(window.location.search);
 if (urlParams.has('b')) {
-  fetchCards('b:' + urlParams.get('b') + ' (t:instant or o:flash)');
+  fetchCards('b:' + urlParams.get('b') + ' (t:instant or o:flash) is:booster');
 } else if (urlParams.has('q')) {
   fetchCards(urlParams.get('q'));
 } else {
-  fetchCards('b:dom (t:instant or o:flash)');
+  fetchCards('b:m19 (t:instant or o:flash) is:booster');
 }
   </script>
 </body>

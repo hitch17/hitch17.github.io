@@ -138,16 +138,9 @@ function compareColors(c1, c2) {
   return (colorLookup(c1) - colorLookup(c2));
 }
 function replaceMana(cost) {
-  cost = replaceAll(cost, "{W}", '<i class="ms ms-cost ms-shadow ms-w"></i>');
-  cost = replaceAll(cost, "{U}", '<i class="ms ms-cost ms-shadow ms-u"></i>');
-  cost = replaceAll(cost, "{B}", '<i class="ms ms-cost ms-shadow ms-b"></i>');
-  cost = replaceAll(cost, "{R}", '<i class="ms ms-cost ms-shadow ms-r"></i>');
-  cost = replaceAll(cost, "{G}", '<i class="ms ms-cost ms-shadow ms-g"></i>');
-  cost = replaceAll(cost, "{X}", '<i class="ms ms-cost ms-shadow ms-x"></i>');
-  for (var i = 0; i < 20; i++) {
-    cost = replaceAll(cost, "{" + i + "}", '<i class="ms ms-cost ms-shadow ms-' + i + '"></i>');
-  }
-  return cost;
+  return cost.replace(/\{([A-Z0-9](\/[A-Z0-9])?)\}/g, function(g0, g1) {
+    return '<i class="ms ms-cost ms-shadow ms-fw ms-' + g1.replace("/", "").toLowerCase() + '"></i>';
+  });
 }
 function typeCode(c) {
   var typeLine = c.type_line.split("—")[0].trim();

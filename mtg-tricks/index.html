@@ -36,6 +36,9 @@ a:visited {
 a:hover {
   color:#142e3e;
 }
+.center {
+  text-align: center;
+}
 .row {
   padding: 6px;
   border: solid 1px lightgray;
@@ -75,38 +78,56 @@ a:hover {
 .bg-z {
   background-color: #fcf4df;
 }
+.set-icon {
+  width: 15px;
+  height: 15px;
+  margin-right: 3px;
+  margin-bottom: -3px;
+}
+.ms-planeswalker {
+  font-size: 13px;
+}
 </style>
 </head>
 <body>
   <h2>MTG Tricks</h2>
+  <div id="backbone"></div>
   <div id="content"></div>
   <div class="support">
-    <div><form><input id="q" name="q" type="text"></input></form></div>
+    <div><form><input id="q" name="q" type="text"></form></div>
     <div><div id="result-count"></div></div>
-    <div><a href="https://scryfall.com/docs/account-faqs">Support Scryfall</a></div>
+    <div>
+      <a href="#">Set List</a>
+      <i class="ms ms-planeswalker"></i>
+      <a href="https://scryfall.com/docs/account-faqs">Support Scryfall</a>
+    </div>
   </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.9.1/underscore-min.js" type="text/javascript"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" type="text/javascript"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/backbone.js/1.3.3/backbone-min.js" type="text/javascript"></script>
   <script type="text/javascript">
-function replaceAll(str, find, replace) {
-  return str.split(find).join(replace);
-}
 var rarityCodes = {
   'common': 'Common',
   'uncommon': 'Uncommon',
   'rare': 'Rare',
   'mythic': 'Mythic',
 };
+
 var rarityMap = {
   'common': 0,
   'uncommon': 1,
   'rare': 2,
   'mythic': 3,
 };
-function rarityCode(c) {
-  return rarityCodes[c.rarity];
+
+function rarityCode(m) {
+  return rarityCodes[m.get('rarity')];
 }
+
 function compareRarity(c1, c2) {
   return (rarityMap[c1.rarity] - rarityMap[c2.rarity]);
 }
+
 var colorMap = {
   'W': 0,
   'U': 1,
@@ -114,18 +135,21 @@ var colorMap = {
   'R': 3,
   'G': 4
 }
+
 function colorLookup(c) {
+  // Reminder, this handles double faced cards incorrectly.
   if (c.colors.length == 0) {
-    return 0
+    return 0;
   } else if (c.colors.length > 1) {
     return 5;
   }
   var color = c.colors[0];
   return colorMap[color]
 }
+
 function colorLookupLetter(c) {
   if (c.colors.length == 0) {
-    return 'A'
+    return 'A';
   } else if (c.colors.length > 1) {
     return 'Z';
   }
@@ -134,77 +158,204 @@ function colorLookupLetter(c) {
   }
   return c.colors[0];
 }
+
 function compareColors(c1, c2) {
   return (colorLookup(c1) - colorLookup(c2));
 }
+
 function replaceMana(cost) {
   return cost.replace(/\{([A-Z0-9](\/[A-Z0-9])?)\}/g, function(g0, g1) {
-    return '<i class="ms ms-cost ms-shadow ms-fw ms-' + g1.replace("/", "").toLowerCase() + '"></i>';
+    var classes = ['ms', 'ms-fw'];
+    if (g1 == 'T') {
+      classes = classes.concat(['ms-cost', 'ms-shadow', 'ms-tap']);
+    } else if (g1 == 'E') {
+      classes = classes.concat(['ms-e']);
+    } else {
+      classes = classes.concat(['ms-cost', 'ms-shadow', "ms-"+ g1.replace("/", "").toLowerCase()]);
+    }
+    return '<i class="'+ classes.join(" ") +'"></i>';
   });
 }
-function typeCode(c) {
-  var typeLine = c.type_line.split("—")[0].trim();
+
+function typeCode(m) {
+  var typeLine = m.get('type_line').split("—")[0].trim();
   typeLine = typeLine.replace("Legendary", "&#9819;")
   return typeLine;
 }
-function fetchCards(query) {
-  document.getElementById("q").setAttribute("value", query);
-  fetch('https://api.scryfall.com/cards/search?q=' + encodeURIComponent(query))
-    .then(function(response) {
-      return response.json();
-    })
-    .then(function(response) {
-      var cards = response.data;
-      cards.sort(function(c1, c2) {
-        var color = compareColors(c1, c2);
-        if (color != 0) {
-          return color;
-        }
-        var rarity = compareRarity(c1, c2);
-        if (rarity != 0) {
-          return rarity;
-        }
-        var cost = c1.cmc - c2.cmc;
-        return cost;
-      });
-      var element = "";
-      cards.forEach(function(e) {
-        console.log(e);
-        element += "<div class='row " + e.rarity + "'>";
-        element += "<div class='row-top'>";
-        element += "<span>" + replaceMana(e.mana_cost) + "</span> ";
-        element += "<span><a href='" + e.scryfall_uri + "'>" + e.name + "</a></span> ";
-        element += "<span>" + rarityCode(e) + "</span> ";
-        element += "<span>" + typeCode(e) + "</span> ";
-        if (e.power || e.toughness) {
-          element += "<span>(" + e.power + "/" + e.toughness + ")</span>";
-        }
-        element += "</div>";
-        if (e.card_faces) {
-          element += e.card_faces.map(function(c) {
-            return replaceMana(c.oracle_text);
-          }).join(" // ");
-        } else {
-          element += "<div class='row-bottom' nowrap>" + replaceMana(e.oracle_text) + " [<a href='" + e.related_uris.gatherer + "'>gatherer</a>]</div>";
-        }
-        element += "</div>";
-      });
-      document.getElementById("content").innerHTML = element;
-      document.getElementById("result-count").innerHTML = cards.length + " results.";
-    }).catch(function(e) {
-      console.error(e);
-      document.getElementById("content").innerHTML = "<span>There was an error in the query. You can use ?b=[block code] or ?q=[scryfall query]</span>";
-    });;
+
+var CardSet = Backbone.Model.extend({
+  idAttribute: "code",
+});
+
+var CardSetsCollection = Backbone.Collection.extend({
+  model: CardSet,
+  url: function() {
+    return "https://api.scryfall.com/sets";
+  },
+  parse: function(response, options) {
+    return response.data.filter(function(s) {
+      return s.set_type == "expansion" || s.set_type == "core";
+    });
+  }
+});
+
+var CardSetView = Backbone.View.extend({
+  tagname: "div",
+  model: CardSet,
+  render: function (){
+    var element = "";
+    element += "<div class='row center'>";
+    element += '<a class="set-text" href="#set/'+ this.model.get("code") +'">';
+    element += '<img class="set-icon" src="' + this.model.get('icon_svg_uri') + '"/> '; 
+    element +=  this.model.get("code").toUpperCase() + ' - ' + this.model.get("name");
+    element += "</a></div>";
+    this.$el.html(element);
+  }
+});
+
+var CardSetsCollectionView = Backbone.View.extend({
+  model: CardSetsCollection,
+  render: function() {
+    this.$el.html("");
+    var self = this;
+    this.model.forEach(function (set, i) {
+      var view = new CardSetView({model: set});
+      self.$el.append(view.$el);
+      view.render();
+    });
+    return this;
+  },
+});
+
+var Card = Backbone.Model.extend({
+  idAttribute: "id",
+});
+
+function sortCards(cards) {
+  cards.sort(function(c1, c2) {
+    var color = compareColors(c1, c2);
+    if (color != 0) {
+      return color;
+    }
+    var rarity = compareRarity(c1, c2);
+    if (rarity != 0) {
+      return rarity;
+    }
+    var cost = c1.cmc - c2.cmc;
+    return cost;
+  });
+  return cards;
 }
 
-var urlParams = new URLSearchParams(window.location.search);
-if (urlParams.has('b')) {
-  fetchCards('b:' + urlParams.get('b') + ' (t:instant or o:flash) is:booster');
-} else if (urlParams.has('q')) {
-  fetchCards(urlParams.get('q'));
-} else {
-  fetchCards('b:grn (t:instant or o:flash) is:booster');
-}
+var CardCollection = Backbone.Collection.extend({
+    model: Card,
+    url: function(e) {
+      return 'https://api.scryfall.com/cards/search?q=' + encodeURIComponent(this.query);
+    },
+    parse: function(response, options) {
+      return sortCards(response.data);
+    },
+    fetch: function(options) {
+      this.query = options.query;
+      return Backbone.Collection.prototype.fetch.call(this, options);
+    }
+});
+
+var CardView = Backbone.View.extend({
+  tagname: "li",
+  model: Card,
+  render: function (){
+    var m = this.model;
+    var element = "";
+    element += "<div class='row " + m.get('rarity') + "'>";
+    element += "<div class='row-top'>";
+    element += "<span>" + replaceMana(m.get('mana_cost')) + "</span> ";
+    element += "<span><a href='" + m.get('scryfall_uri') + "'>" + m.get('name') + "</a></span> ";
+    element += "<span>" + rarityCode(m) + "</span> ";
+    element += "<span>" + typeCode(m) + "</span> ";
+    if (m.has('power') || m.has('toughness')) {
+      element += "<span>(" + m.get('power') + "/" + m.get('toughness') + ")</span>";
+    }
+    element += "</div>";
+    if (m.has('card_faces')) {
+      element += m.get('card_faces').map(function(c) {
+        return replaceMana(c.oracle_text);
+      }).join(" // ");
+    } else {
+      element += "<div class='row-bottom' nowrap>";
+      element += replaceMana(m.get('oracle_text'));
+      element += " [<a href='" + m.get('related_uris').gatherer + "'>gatherer</a>]";
+      element += "</div>";
+    }
+    element += "</div>";
+    this.$el.html(element);
+    return this;
+  }
+});
+
+var CardCollectionView = Backbone.View.extend({
+  model: CardCollection,
+  render: function() {
+      this.$el.html("");
+      var self = this;
+      this.model.forEach(function (card, i) {
+        var view = new CardView({model: card});
+        self.$el.append(view.$el);
+        view.render();
+      });
+      return this;
+  },
+});
+
+var BackboneRouter = Backbone.Router.extend({
+  routes: {
+    "?q=:query":             "query",
+    "":                     "sets",    // nothing or #
+    "set/:code":            "set",     // #set/grn
+  },
+
+  query: function(query) {
+    console.log("query:", query)
+    $('#backbone').html("");
+    var cards = new CardCollection();
+    $('#q').val(query);
+    cards.fetch({query: query, success: function(cards, response) {
+      new CardCollectionView({ el: $("#backbone"), model: cards }).render();
+    }});
+  },
+
+  sets: function() {
+    console.log("sets");
+    var sets = new CardSetsCollection();
+    $('#q').val("");
+    sets.fetch({success: function(sets, response) {
+      new CardSetsCollectionView({ el: $("#backbone"), model: sets }).render();
+    }});
+  },
+
+  set: function(code) {
+    console.log("set:", code);
+    var query = "b:" + code + " (t:instant or o:flash) is:booster";
+    $('#backbone').html("");
+    var cards = new CardCollection();
+    $('#q').val(query);
+    cards.fetch({query: query, success: function(cards, response) {
+      new CardCollectionView({ el: $("#backbone"), model: cards }).render();
+    }});
+  }
+});
+
+(function() {
+  var router = new BackboneRouter();
+  $('#q').on('keypress', function(e) {
+    if (e.which == 13) {
+      e.preventDefault();
+      router.navigate("#?q=" + $(this).val());
+      return false;
+    }
+  });
+  Backbone.history.start();
+})();
   </script>
 </body>
 </html>

@@ -335,7 +335,7 @@ var BackboneRouter = Backbone.Router.extend({
 
   set: function(code) {
     console.log("set:", code);
-    var query = "b:" + code + " (t:instant or o:flash) is:booster";
+    var query = "s:" + code + " (t:instant or o:flash) is:booster";
     $('#backbone').html("");
     var cards = new CardCollection();
     $('#q').val(query);
